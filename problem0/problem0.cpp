@@ -1,48 +1,62 @@
-#include <mpi.h>
 #include <cstdio>
 #include <cstdlib>
 #include <vector> 
 
 
-/************************************ 
-    I = Global Index
-    N = Vector Length 
-    P = Processes (nprocs)
-    p = which process owns element I 
-    i = local index
-    L = base elements 
-    R = remainder elements
-************************************/
-static void forwardLinearMapping(int P, int N, int I, int &p, int &i) {
-    //number of entries per partition and the remainers in R
-    int L = N / P;
-    int R = N % P;
-
-    //vector length is evenly divisible by P 
-    if (R == 0) {
-        p = I / L;
-        i = I % L;
-    }else{
-        if (I < (L + 1) * R) {
-            p = I / (L + 1);
-            i = I - (L + 1) * p;
-        }else {
-            p = R + (I - (L + 1) * R) / L;
-            i = I - R * (L + 1) - (p - R) * L;
-        }
-    }
-}
-
-//function to decide on how many elements each rank r gets 
-static void partitionSize(int N, int P, int r) {
-    int L = N / P;
-    int R = N % P;
-    return L + (r < R ? 1 : 0);
-}
+//function prototypes 
+static int partitionSize();
+static int linearInverseDist();
+static void scatterDist();
 
 int main(int argc, char **argv){
+    
+    //check for correct number of arguments
+    if (argc != 5) {
+        fprintf(stderr, "Usage: ./problem0 <M> <P> <p> <i>\n");
+        return 1;
+    }
+
+    int M = std::atoi(argv[1]); //num of elements
+    int P = std::atoi(argv[2]); //num of processes
+    int p = std::atoi(argv[3]); //rank of the process
+    int i = std::atoi(argv[4]); //local index in the process
 
 
 
     return 0;
+}
+
+//function to decide on how many elements each rank r gets 
+static int partitionSize(int M, int P, int p) {
+    int L = M / P;
+    int R = M % P;
+    return L + (p < R ? 1 : 0);
+}
+//function to find the global index using inverse linear distibution
+static int linearInverseDist(int M, int P, int p, int i) {
+    int L = M / P;
+    int R = M % P;
+
+    //figure out the starting point for each rank  
+    int start;
+    if (p < R) {
+        start = L + 1;
+    } else {
+        start = L;
+    }
+
+    //return the global index for i in rank p
+    return p * L + start + i;
+}
+
+/**********************************************************************
+    * p - which process owns this element
+    * i - the local index inside the process 
+    * 
+    * p =  6 % 4 = 2  (process 2 will own the element with global index 6)
+    * i =  6 / 4 = 1  (local index 1))
+    **********************************************************************/
+static void scatterDist(int I, int P, int &p, int &i) {
+    p = I % P; //which process owns the element I 
+    i = I / P; //the local index inside the process
 }
