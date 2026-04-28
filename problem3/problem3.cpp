@@ -11,6 +11,29 @@ static int partitionSize(int M, int P, int r) {
     return L + (r < R ? 1 : 0);
 }
 
+/**********************************************************************
+    * p - which process owns this element
+    * i - the local index inside the process 
+    * 
+    * p =  6 % 4 = 2  (process 2 will own the element with global index 6)
+    * i =  6 / 4 = 1  (local index 1))
+    **********************************************************************/
+static void scatterDist(int I, int P, int &p, int &i) {
+    p = I % P; //which process owns the element I 
+    i = I / P; //the local index inside the process
+}
+
+
+//function to find the global index for each row 
+static int linearStartIndex(int M, int P, int row) {
+    int start = 0;
+
+    for (int r = 0; r < row; r++) {
+        start += partitionSize(M, P, r);
+    }
+
+    return start;
+}
 
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
@@ -22,7 +45,7 @@ int main(int argc, char **argv) {
     //check for the correct number of arguments 
     if (argc != 3) {
         if (rank == 0) {
-            std::cerr << "Usage: ./problem2 <M> <Q>\n";
+            std::cerr << "Usage: ./problem3 <M> <Q>\n";
         }
         MPI_Finalize();
         return 1;
@@ -58,11 +81,14 @@ int main(int argc, char **argv) {
     MPI_Comm_split(MPI_COMM_WORLD, col, rank, &col_rank);
 
     //get the partition size 
-    int local_size = partitionSize(M, P, row);
+    int local_size = partitionSize(M, P, row); //dist across P rows
+    int y_local_size = partitionSize(M, Q, col); //dist across Q columns 
 
     //create local vectors for each rank  
     std::vector<double> x(local_size);
-    std::vector<double> y(local_size);
+    
+    //vector y is going to be scattered across Q columns
+    std::vector<double> y(y_local_size, 0.0);
 
     //create the vectors needed for the gather
     std::vector<double> data(M);
@@ -113,9 +139,18 @@ int main(int argc, char **argv) {
 }
     MPI_Bcast(x.data(), local_size, MPI_DOUBLE, 0, row_rank);
 
-    //copy the local vector x to y
-    for (int i = 0; i < local_size; i++) {
-        y[i] = x[i];
+    //copy the local vector x to y using scatter dist
+    //get the global start index
+    int start_index = linearStartIndex(M, P, row);  
+    for (int j = 0; j < local_size; j++) {
+        int k = start_index + j; //global index for the element in x
+        int owner_col; 
+        int local_index;
+        scatterDist(k, Q, owner_col, local_index); 
+
+        if (owner_col == col) {
+            y[local_index] = x[j];
+        }    
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
