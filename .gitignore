@@ -1,36 +1,4 @@
-# Ignore everything by default
-*
-
-# Allow directories
-!*/
-
-# Always keep gitignore
-!.gitignore
-
-# Allow source code
-!*.c
-!*.cpp
-!*.cu
-!*.h
-!*.hpp
-!Makefile
-!CMakeLists.txt
-
-# Allow documentation
-!README.md
-!*.md
-!*.pdf
-
-# Allow assignment folders
-!problem0/**
-!problem1/**
-!problem2/**
-!problem3/**
-!problem4/**
-!problem5/**
-!problem6/**
-
-# Ignore build artifacts
+# Build / compiled files
 *.o
 *.out
 *.exe
@@ -46,15 +14,10 @@ problem4
 problem5
 problem6
 
-# CMake
-build/
-CMakeCache.txt
-CMakeFiles/
-
-# CUDA
+# CUDA artifacts
 *.ptx
 *.cubin
 
-# Mac/Linux junk
+# OS / editor junk
 .DS_Store
 *~
