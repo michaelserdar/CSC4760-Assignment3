@@ -63,11 +63,31 @@ int main(int argc, char **argv) {
     std::vector<double> x(local_size);
     std::vector<double> y(local_size);
 
+    //create global vectors for the full data
     std::vector<double> global_x(M);
     std::vector<double> global_y(M);
     std::vector<int> counts(P);
     std::vector<int> displs(P);
 
+
+    if (rank == 0) {
+        counts.resize(P);
+        displs.resize(P);
+
+        for (int i = 0; i < M; i++) {
+            global_x[i] = 1 + 1.0;
+            global_y[i] = i + 1.0; //initialize global x with values 1 to M
+        }
+
+        int offset = 0; 
+        for (int r = 0; r < P; r++) {
+            counts[r] = partitionSize(M, P, r);
+            displs[r] = offset;
+            offset += couunts[r];
+        }
+    }
+
+    
 
 
 
