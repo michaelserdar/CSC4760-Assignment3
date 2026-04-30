@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
         for (int r = 0; r < P; r++) {
             counts[r] = partitionSize(M, P, r);
             displs[r] = offset;
-            offset += couunts[r];
+            offset += counts[r];
         }
     }
 
@@ -118,12 +118,36 @@ int main(int argc, char **argv) {
         }
     }
 
-    
-    
+    //Broadcast across the rows(horizontally)so each rank in the same row has the same data for both vectors 
+    MPI_Bcast(x.data(), local_size, MPI_DOUBLE, 0, row_rank);
+    MPI_Bcast(y.data(), local_size, MPI_DOUBLE, 0, row_rank);
+
+    double local_dot_product = 0.0;
+    double global_dot_product = 0.0;
+
+    //Calc. the local dot product easy since each rank has the same data in the same row
+    if (col == 0) {
+        for (int i = 0; i < local_size; i++) {
+            local_dot_product += x[i] * y[i];
+        }
+    }
+
+    MPI_Allreduce(&local_dot_product, &global_dot_product, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
 
+    for (int r = 0; r < nprocs; r++) {
+        //print the local and global dot product for the ranks 
+        if (rank == r) {
+            std::cout << "Rank " << rank << " row: " << row << " col: " << col << " Local dot product: " << 
+                local_dot_product << " | Global dot product: " << global_dot_product << "\n";
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
 
-
+    MPI_Comm_free(&row_rank);
+    MPI_Comm_free(&col_rank);
 
 
     MPI_Finalize();
