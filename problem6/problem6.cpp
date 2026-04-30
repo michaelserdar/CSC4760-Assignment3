@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
      //num. of ranks for each group
     int P = nprocs / Q; 
 
-    // get the row number for the current rank
+    //get the row number for the current rank
     int row = rank / Q;
 
     //get the column number for the current rank 
@@ -74,9 +74,10 @@ int main(int argc, char **argv) {
         counts.resize(P);
         displs.resize(P);
 
+        //fill the vectors with [1...M] 
         for (int i = 0; i < M; i++) {
-            global_x[i] = 1 + 1.0;
-            global_y[i] = i + 1.0; //initialize global x with values 1 to M
+            global_x[i] = i + 1.0;
+            global_y[i] = i + 1.0; 
         }
 
         int offset = 0; 
@@ -87,6 +88,37 @@ int main(int argc, char **argv) {
         }
     }
 
+    if (col == 0) { 
+        if (rank == 0) {
+            for (int i = 0; i < counts[0]; i++) {
+                x[i] = global_x[displs[0] + i];
+                y[i] = global_y[displs[0] + i];
+            }
+
+            for (int r = 1; r < P; r++) {
+                int dest_rank = r * Q;
+                int count = counts[r];
+                int start = displs[r];
+                
+                //send the number of elements to the dest rank for size of the partition
+                //not really necessary in this casse as x and y set with partitionSize but good to have   
+                MPI_Send(&count, 1, MPI_INT, dest_rank, 0, MPI_COMM_WORLD);
+
+                //send data to the destination rank
+                MPI_Send(&global_x[start], count, MPI_DOUBLE, dest_rank, 1, MPI_COMM_WORLD);
+                MPI_Send(&global_y[start], count, MPI_DOUBLE, dest_rank, 2, MPI_COMM_WORLD);
+            }
+        }else {
+            int recv_count = 0;
+            //get the number of elements for the partition size (x and y should be the same size)
+            MPI_Recv(&recv_count, 1, MPI_INT, 0,0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+            MPI_Recv(x.data(), recv_count, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(y.data(), recv_count, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+    }
+
+    
     
 
 
