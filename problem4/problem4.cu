@@ -59,7 +59,7 @@ int main() {
     //print out the resutls 
     std::cout << "Result of Matrix vector addition: " << "\n";
     for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; i++) {
+        for (int j = 0; j < cols; j++) {
             std::cout << soln[i * cols + j] << " ";
         }
         std::cout << std::endl;
